@@ -1,18 +1,24 @@
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-
 const { Server } = require("socket.io");
 
 const app = express();
 
-app.use(cors());
+/* ✅ CORS for Express */
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+  })
+);
 
 const server = http.createServer(app);
 
+/* ✅ SOCKET.IO CORS FIX (IMPORTANT) */
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -20,12 +26,10 @@ const io = new Server(server, {
 let onlineUsers = [];
 
 io.on("connection", (socket) => {
-
   console.log("User Connected:", socket.id);
 
-  // join room
+  // JOIN ROOM
   socket.on("join_room", (data) => {
-
     socket.join(data.room);
 
     onlineUsers.push({
@@ -34,6 +38,7 @@ io.on("connection", (socket) => {
       room: data.room,
     });
 
+    // system message
     io.to(data.room).emit("receive_message", {
       username: "System",
       message: `${data.username} joined the room`,
@@ -41,25 +46,18 @@ io.on("connection", (socket) => {
     });
 
     io.emit("online_users", onlineUsers);
-
   });
 
-  // send message
+  // SEND MESSAGE
   socket.on("send_message", (data) => {
-
     io.to(data.room).emit("receive_message", data);
-
   });
 
-  // disconnect
+  // DISCONNECT
   socket.on("disconnect", () => {
-
-    const user = onlineUsers.find(
-      (u) => u.socketId === socket.id
-    );
+    const user = onlineUsers.find((u) => u.socketId === socket.id);
 
     if (user) {
-
       io.to(user.room).emit("receive_message", {
         username: "System",
         message: `${user.username} left the room`,
@@ -73,13 +71,11 @@ io.on("connection", (socket) => {
       io.emit("online_users", onlineUsers);
     }
 
-    console.log("User Disconnected", socket.id);
+    console.log("User Disconnected:", socket.id);
   });
 });
 
-// server.listen(5000, () => {
-//   console.log("Server running on port 5000");
-// });
+/* ✅ PORT FIX FOR RENDER */
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
