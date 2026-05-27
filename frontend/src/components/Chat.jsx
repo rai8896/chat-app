@@ -7,7 +7,7 @@ function Chat({ socket, username, room }) {
 
   // SEND MESSAGE
   const sendMessage = () => {
-    if (currentMessage.trim() === "") return;
+    if (!currentMessage.trim()) return;
 
     const messageData = {
       room,
@@ -20,8 +20,10 @@ function Chat({ socket, username, room }) {
     setCurrentMessage("");
   };
 
-  // RECEIVE MESSAGE + USERS (FIXED + CLEAN)
+  // RECEIVE MESSAGE + USERS
   useEffect(() => {
+    if (!socket) return;
+
     const handleReceiveMessage = (data) => {
       setMessageList((prev) => [...prev, data]);
     };
@@ -33,7 +35,7 @@ function Chat({ socket, username, room }) {
     socket.on("receive_message", handleReceiveMessage);
     socket.on("online_users", handleOnlineUsers);
 
-    // cleanup (IMPORTANT FIX)
+    // CLEANUP (VERY IMPORTANT)
     return () => {
       socket.off("receive_message", handleReceiveMessage);
       socket.off("online_users", handleOnlineUsers);
@@ -54,25 +56,31 @@ function Chat({ socket, username, room }) {
         {/* CHAT BODY */}
         <div className="chat-body">
 
-          {messageList.map((msg, index) => (
-            <div
-              key={index}
-              className={
-                msg.username === username
-                  ? "message own"
-                  : "message"
-              }
-            >
-              <div className="message-content">
-                <p>{msg.message}</p>
-              </div>
+          {messageList.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#888" }}>
+              No messages yet 🚀
+            </p>
+          ) : (
+            messageList.map((msg, index) => (
+              <div
+                key={index}
+                className={
+                  msg.username === username
+                    ? "message own"
+                    : "message"
+                }
+              >
+                <div className="message-content">
+                  <p>{msg.message}</p>
+                </div>
 
-              <div className="message-meta">
-                <span>{msg.username}</span>
-                <span>{msg.time}</span>
+                <div className="message-meta">
+                  <span>{msg.username}</span>
+                  <span>{msg.time}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
 
         </div>
 
@@ -83,9 +91,7 @@ function Chat({ socket, username, room }) {
             type="text"
             placeholder="Type a message..."
             value={currentMessage}
-            onChange={(e) =>
-              setCurrentMessage(e.target.value)
-            }
+            onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
@@ -104,9 +110,13 @@ function Chat({ socket, username, room }) {
 
         <h3>Online Users</h3>
 
-        {onlineUsers.map((user, index) => (
-          <p key={index}>{user.username}</p>
-        ))}
+        {onlineUsers.length === 0 ? (
+          <p>No users</p>
+        ) : (
+          onlineUsers.map((user, index) => (
+            <p key={index}>{user.username}</p>
+          ))
+        )}
 
       </div>
 
